@@ -38,7 +38,7 @@ export default function Header() {
       <div className="header-top">
         <div className="container header-top-inner">
           <span>🌿 Free shipping on orders above ₹500</span>
-          <span>📞 Call: +91 98765 43210</span>
+          <span>📞 Call: +91 89047 58446</span>
         </div>
       </div>
       <nav className="header-main">
