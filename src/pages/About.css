@@ -1,0 +1,37 @@
+.about-hero {
+  background: linear-gradient(135deg, #ECFDF5 0%, #FFFBEB 100%);
+  padding: 80px 0 60px;
+  text-align: center;
+}
+.about-hero h1 { font-size: 2.5rem; margin: 16px 0; }
+.about-hero p { max-width: 600px; margin: 0 auto; color: var(--dark-500); font-size: 1.05rem; line-height: 1.7; }
+.mission-icon { font-size: 2.5rem; color: var(--primary); margin-bottom: 16px; }
+.mission-card h2 { font-size: 1.3rem; margin-bottom: 12px; }
+.mission-card p { color: var(--dark-500); line-height: 1.7; }
+.about-stats {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  padding: 48px 0;
+  color: white;
+}
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center; }
+.stat-num { display: block; font-size: 2.5rem; font-weight: 800; font-family: var(--font-heading); }
+.stat-item span:last-child { font-size: 0.9rem; opacity: 0.9; }
+.timeline { position: relative; max-width: 700px; margin: 0 auto; }
+.timeline::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+  width: 2px; background: var(--primary-light); transform: translateX(-50%);
+}
+.timeline-item { position: relative; margin-bottom: 40px; }
+.timeline-content { position: relative; }
+.timeline-year {
+  display: inline-block; background: var(--primary); color: white;
+  padding: 4px 14px; border-radius: var(--radius-full);
+  font-weight: 700; font-size: 0.85rem; margin-bottom: 10px;
+}
+.timeline-content h3 { font-size: 1.05rem; margin-bottom: 6px; }
+.timeline-content p { font-size: 0.9rem; color: var(--dark-500); line-height: 1.6; }
+@media (max-width: 768px) {
+  .about-hero h1 { font-size: 1.8rem; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .timeline::before { left: 20px; }
+}
