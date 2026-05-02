@@ -49,7 +49,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <strong style={{ display: 'block', marginBottom: 2 }}>Phone</strong>
-                  <a href="tel:+919876543210" style={{ color: 'var(--dark-500)', fontSize: '0.9rem' }}>+91 98765 43210</a>
+                  <a href="tel:+918904758446" style={{ color: 'var(--dark-500)', fontSize: '0.9rem' }}>+91 89047 58446</a>
                 </div>
               </div>
 
@@ -59,7 +59,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <strong style={{ display: 'block', marginBottom: 2 }}>WhatsApp</strong>
-                  <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--dark-500)', fontSize: '0.9rem' }}>Chat with us</a>
+                  <a href="https://wa.me/918904758446" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--dark-500)', fontSize: '0.9rem' }}>Chat with us</a>
                 </div>
               </div>
 
@@ -112,7 +112,7 @@ export default function Contact() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group">
                   <label>Phone</label>
-                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="+91 98765 43210" />
+                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="+91 89047 58446" />
                 </div>
                 <div className="form-group">
                   <label>Subject *</label>

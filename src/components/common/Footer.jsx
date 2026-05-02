@@ -52,8 +52,8 @@ export default function Footer() {
 
         <div className="footer-links">
           <h4>Contact Us</h4>
-          <a href="tel:+919876543210" className="footer-contact">
-            <FiPhone /> +91 98765 43210
+          <a href="tel:+918904758446" className="footer-contact">
+            <FiPhone /> +91 89047 58446
           </a>
           <a href="mailto:info@snmart.com" className="footer-contact">
             <FiMail /> info@snmart.com
