@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { GiHerbsBundle } from 'react-icons/gi';
 import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
-import { FaWhatsapp, FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
+import { FaWhatsapp, FaInstagram, FaFacebook, FaLinkedin } from 'react-icons/fa';
 import './Footer.css';
 
 export default function Footer() {
@@ -26,10 +26,10 @@ export default function Footer() {
             Natural remedies rooted in ancient wisdom for modern living.
           </p>
           <div className="footer-social">
-            <a href="#" aria-label="WhatsApp"><FaWhatsapp /></a>
-            <a href="#" aria-label="Instagram"><FaInstagram /></a>
-            <a href="#" aria-label="Facebook"><FaFacebook /></a>
-            <a href="#" aria-label="YouTube"><FaYoutube /></a>
+            <a href="https://wa.me/918904758446" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><FaWhatsapp /></a>
+            <a href="https://instagram.com/srinanjundeshwaramart" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><FaInstagram /></a>
+            <a href="https://facebook.com/srinanjundeshwaramart" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><FaFacebook /></a>
+            <a href="https://linkedin.com/company/srinanjundeshwaramart" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><FaLinkedin /></a>
           </div>
         </div>
 
