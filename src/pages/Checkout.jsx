@@ -11,87 +11,191 @@ export default function Checkout() {
   const { user } = useSelector(s => s.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [address, setAddress] = useState({
-    addressLine1: '', addressLine2: '', city: '', state: '', pincode: '', phone: user?.phone || ''
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    pincode: '',
+    phone: user?.phone || ''
   });
+
   const [paymentMethod, setPaymentMethod] = useState('COD');
 
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const shipping = total >= 500 ? 0 : 49;
   const grandTotal = total + shipping;
 
-  const handleChange = (e) => setAddress({ ...address, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setAddress({ ...address, [e.target.name]: e.target.value });
+  };
 
   const handleOrder = async (e) => {
     e.preventDefault();
+
     if (!address.addressLine1 || !address.city || !address.state || !address.pincode) {
       return toast.error('Please fill all required address fields');
     }
+
     setLoading(true);
+
     try {
-      const orderData = {
-        items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
-        shippingAddress: address,
-        paymentMethod,
+      const API_URL = import.meta.env.VITE_API_URL;
+
+      // ✅ STEP 1: Create Razorpay order
+      const res = await fetch(`${API_URL}/payment/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          amount: grandTotal
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create Razorpay order");
+      }
+
+      const order = await res.json();
+
+      // ❌ Safety check
+      if (!window.Razorpay) {
+        return toast.error("Razorpay not loaded ❌");
+      }
+
+      // ✅ STEP 2: Razorpay options
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY,
+        amount: order.amount,
+        currency: "INR",
+        name: "SN Mart",
+        description: "Order Payment",
+        order_id: order.id,
+
+        handler: async function (response) {
+          try {
+            // ✅ STEP 3: Verify payment
+            const verifyRes = await fetch(`${API_URL}/payment/verify`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(response)
+            });
+
+            if (!verifyRes.ok) {
+              throw new Error("Payment verification failed");
+            }
+
+            // ✅ STEP 4: Create order AFTER payment
+            const orderData = {
+              items: items.map(i => ({
+                productId: i._id,
+                quantity: i.quantity
+              })),
+              shippingAddress: address,
+              paymentMethod: "ONLINE",
+            };
+
+            const { data } = await API.post('/orders', orderData);
+
+            dispatch(clearCart());
+            toast.success("Payment Successful & Order Placed ✅");
+
+            navigate(`/order-success?order=${data.order.orderNumber}`);
+
+          } catch (err) {
+            console.error(err);
+            toast.error("Payment verification failed ❌");
+          }
+        }
       };
-      const { data } = await API.post('/orders', orderData);
-      dispatch(clearCart());
-      toast.success('Order placed successfully!');
-      navigate(`/order-success?order=${data.order.orderNumber}`);
+
+      // ✅ STEP 5: Open Razorpay
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to place order');
-    } finally { setLoading(false); }
+      console.error(err);
+      toast.error("Payment failed ❌");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (items.length === 0) { navigate('/cart'); return null; }
+  if (items.length === 0) {
+    navigate('/cart');
+    return null;
+  }
 
   return (
     <div className="page">
-      <div className="page-header"><div className="container"><h1>Checkout</h1></div></div>
+      <div className="page-header">
+        <div className="container">
+          <h1>Checkout</h1>
+        </div>
+      </div>
+
       <div className="container" style={{ maxWidth: 900, paddingTop: 32, paddingBottom: 60 }}>
         <form onSubmit={handleOrder}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 32 }}>
+
+            {/* LEFT */}
             <div>
+
+              {/* Address */}
               <div className="card" style={{ padding: 28, marginBottom: 24 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}><FiMapPin /> Shipping Address</h3>
-                <div className="form-group"><label>Address Line 1 *</label><input name="addressLine1" value={address.addressLine1} onChange={handleChange} required /></div>
-                <div className="form-group"><label>Address Line 2</label><input name="addressLine2" value={address.addressLine2} onChange={handleChange} /></div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div className="form-group"><label>City *</label><input name="city" value={address.city} onChange={handleChange} required /></div>
-                  <div className="form-group"><label>State *</label><input name="state" value={address.state} onChange={handleChange} required /></div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div className="form-group"><label>Pincode *</label><input name="pincode" value={address.pincode} onChange={handleChange} required /></div>
-                  <div className="form-group"><label>Phone *</label><input name="phone" value={address.phone} onChange={handleChange} required /></div>
-                </div>
+                <h3><FiMapPin /> Shipping Address</h3>
+
+                <input name="addressLine1" placeholder="Address Line 1" value={address.addressLine1} onChange={handleChange} required />
+                <input name="addressLine2" placeholder="Address Line 2" value={address.addressLine2} onChange={handleChange} />
+
+                <input name="city" placeholder="City" value={address.city} onChange={handleChange} required />
+                <input name="state" placeholder="State" value={address.state} onChange={handleChange} required />
+
+                <input name="pincode" placeholder="Pincode" value={address.pincode} onChange={handleChange} required />
+                <input name="phone" placeholder="Phone" value={address.phone} onChange={handleChange} required />
               </div>
+
+              {/* Payment Method */}
               <div className="card" style={{ padding: 28 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}><FiCreditCard /> Payment Method</h3>
+                <h3><FiCreditCard /> Payment Method</h3>
+
                 {['COD', 'UPI', 'Card'].map(m => (
-                  <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', cursor: 'pointer', borderBottom: '1px solid var(--gray-200)' }}>
-                    <input type="radio" name="payment" value={m} checked={paymentMethod === m} onChange={() => setPaymentMethod(m)} />
-                    <span style={{ fontWeight: 500 }}>{m === 'COD' ? 'Cash on Delivery' : m === 'UPI' ? 'UPI Payment' : 'Card Payment'}</span>
+                  <label key={m}>
+                    <input
+                      type="radio"
+                      value={m}
+                      checked={paymentMethod === m}
+                      onChange={() => setPaymentMethod(m)}
+                    />
+                    {m}
                   </label>
                 ))}
               </div>
             </div>
-            <div className="card" style={{ padding: 28, height: 'fit-content', position: 'sticky', top: 100 }}>
-              <h3 style={{ marginBottom: 16 }}>Order Summary</h3>
+
+            {/* RIGHT */}
+            <div className="card" style={{ padding: 28 }}>
+              <h3>Order Summary</h3>
+
               {items.map(i => (
-                <div key={i._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '0.9rem', color: 'var(--dark-600)' }}>
-                  <span>{i.name} × {i.quantity}</span><span>₹{i.price * i.quantity}</span>
+                <div key={i._id}>
+                  {i.name} × {i.quantity} = ₹{i.price * i.quantity}
                 </div>
               ))}
-              <div style={{ borderTop: '1px solid var(--gray-200)', marginTop: 12, paddingTop: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.9rem' }}><span>Subtotal</span><span>₹{total}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.9rem' }}><span>Shipping</span><span>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontWeight: 700, fontSize: '1.1rem', borderTop: '2px solid var(--gray-200)', marginTop: 8 }}><span>Total</span><span>₹{grandTotal}</span></div>
-              </div>
-              <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
-                {loading ? 'Placing Order...' : 'Place Order'} <FiArrowRight />
+
+              <hr />
+              <p>Total: ₹{grandTotal}</p>
+
+              <button type="submit" disabled={loading}>
+                {loading ? 'Processing...' : 'Place Order'} <FiArrowRight />
               </button>
             </div>
+
           </div>
         </form>
       </div>
