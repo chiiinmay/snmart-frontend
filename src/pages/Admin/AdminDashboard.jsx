@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import API from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { FiPackage, FiUsers, FiDollarSign, FiBox, FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiPackage, FiUsers, FiDollarSign, FiBox, FiPlus, FiEdit, FiTrash2, FiImage, FiX, FiUpload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -13,6 +13,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const [newProduct, setNewProduct] = useState({
     name: '', description: '', category: 'immunity', price: '', stock: '', discount: 0,
     ingredients: '', benefits: '', symptoms: '', dosage: ''
@@ -28,9 +32,44 @@ export default function AdminDashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + imageFiles.length > 5) {
+      return toast.error('Maximum 5 images allowed');
+    }
+    setImageFiles(prev => [...prev, ...files]);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreviews(prev => [...prev, reader.result]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async () => {
+    if (imageFiles.length === 0) return [];
+    const formData = new FormData();
+    imageFiles.forEach(file => formData.append('images', file));
+    const { data } = await API.post('/upload/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data.urls;
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
+    setUploading(true);
     try {
+      // Upload images first
+      let imageUrls = [];
+      if (imageFiles.length > 0) {
+        imageUrls = await uploadImages();
+      }
+
       const productData = {
         ...newProduct,
         price: Number(newProduct.price),
@@ -39,13 +78,17 @@ export default function AdminDashboard() {
         ingredients: newProduct.ingredients.split(',').map(s => s.trim()).filter(Boolean),
         benefits: newProduct.benefits.split(',').map(s => s.trim()).filter(Boolean),
         symptoms: newProduct.symptoms.split(',').map(s => s.trim()).filter(Boolean),
+        images: imageUrls
       };
       const { data } = await API.post('/products', productData);
       setProducts([data.product, ...products]);
       setShowAddProduct(false);
       setNewProduct({ name: '', description: '', category: 'immunity', price: '', stock: '', discount: 0, ingredients: '', benefits: '', symptoms: '', dosage: '' });
+      setImageFiles([]);
+      setImagePreviews([]);
       toast.success('Product added!');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to add product'); }
+    finally { setUploading(false); }
   };
 
   const handleDelete = async (id) => {
@@ -135,10 +178,54 @@ export default function AdminDashboard() {
                     <div className="form-group"><label>Dosage</label><input value={newProduct.dosage} onChange={e => setNewProduct({...newProduct, dosage: e.target.value})} /></div>
                   </div>
                   <div className="form-group"><label>Description *</label><textarea rows={3} value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} required /></div>
+
+                  {/* Image Upload Section */}
+                  <div className="form-group">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FiImage /> Product Images (up to 5)</label>
+                    <div style={{
+                      border: '2px dashed var(--gray-300)', borderRadius: 'var(--radius-md)', padding: 24,
+                      textAlign: 'center', cursor: 'pointer', background: 'var(--gray-100)',
+                      transition: 'var(--transition-fast)'
+                    }}
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                      onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--gray-300)'; }}
+                      onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--gray-300)'; handleImageSelect({ target: { files: e.dataTransfer.files } }); }}
+                    >
+                      <FiUpload style={{ fontSize: '2rem', color: 'var(--dark-500)', marginBottom: 8 }} />
+                      <p style={{ color: 'var(--dark-500)', fontSize: '0.9rem' }}>Click or drag & drop product photos here</p>
+                      <p style={{ color: 'var(--gray-400)', fontSize: '0.75rem' }}>JPG, PNG, WebP • Max 5MB each</p>
+                      <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect}
+                        style={{ display: 'none' }} />
+                    </div>
+
+                    {/* Image Previews */}
+                    {imagePreviews.length > 0 && (
+                      <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                        {imagePreviews.map((src, i) => (
+                          <div key={i} style={{ position: 'relative', width: 80, height: 80 }}>
+                            <img src={src} alt={`Preview ${i + 1}`} style={{
+                              width: 80, height: 80, objectFit: 'cover', borderRadius: 'var(--radius)',
+                              border: '2px solid var(--gray-200)'
+                            }} />
+                            <button type="button" onClick={() => removeImage(i)} style={{
+                              position: 'absolute', top: -6, right: -6, width: 20, height: 20,
+                              borderRadius: '50%', background: 'var(--error)', color: 'white',
+                              border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '0.7rem', cursor: 'pointer'
+                            }}><FiX /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="form-group"><label>Ingredients (comma separated)</label><input value={newProduct.ingredients} onChange={e => setNewProduct({...newProduct, ingredients: e.target.value})} placeholder="Ashwagandha, Turmeric, Tulsi" /></div>
                   <div className="form-group"><label>Benefits (comma separated)</label><input value={newProduct.benefits} onChange={e => setNewProduct({...newProduct, benefits: e.target.value})} placeholder="Boosts immunity, Reduces stress" /></div>
                   <div className="form-group"><label>Symptoms (comma separated)</label><input value={newProduct.symptoms} onChange={e => setNewProduct({...newProduct, symptoms: e.target.value})} placeholder="fatigue, headache, cold" /></div>
-                  <button type="submit" className="btn btn-primary">Save Product</button>
+                  <button type="submit" className="btn btn-primary" disabled={uploading}>
+                    {uploading ? 'Uploading & Saving...' : 'Save Product'}
+                  </button>
                 </form>
               </div>
             )}
@@ -146,13 +233,17 @@ export default function AdminDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ background: 'var(--gray-100)', textAlign: 'left' }}>
-                    <th style={{ padding: 12 }}>Name</th><th style={{ padding: 12 }}>Category</th>
+                    <th style={{ padding: 12 }}>Image</th><th style={{ padding: 12 }}>Name</th><th style={{ padding: 12 }}>Category</th>
                     <th style={{ padding: 12 }}>Price</th><th style={{ padding: 12 }}>Stock</th><th style={{ padding: 12 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map(p => (
                     <tr key={p._id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
+                      <td style={{ padding: 12 }}>
+                        <img src={p.images?.[0] || 'https://placehold.co/50x50/ECFDF5/10B981?text=No+Img'} alt={p.name}
+                          style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--radius)' }} />
+                      </td>
                       <td style={{ padding: 12, fontWeight: 500 }}>{p.name}</td>
                       <td style={{ padding: 12 }}><span className="badge badge-info">{p.category}</span></td>
                       <td style={{ padding: 12 }}>₹{p.price}</td>
